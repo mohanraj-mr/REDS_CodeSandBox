@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REDS PLMT Tracker - Enhanced</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        
+        // Firebase configuration (demo config - replace with your own)
+        const firebaseConfig = {
+            apiKey: "demo-api-key",
+            authDomain: "reds-plmt-demo.firebaseapp.com",
+            projectId: "reds-plmt-demo",
+            storageBucket: "reds-plmt-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "demo-app-id"
+        };
+        
+        window.firebaseApp = initializeApp(firebaseConfig);
+        window.firebaseDB = getFirestore(window.firebaseApp);
+        window.firebaseAuth = getAuth(window.firebaseApp);
+    </script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="login-screen">
+            <div class="login-container">
+                <div class="login-header">
+                    <div class="app-logo">
+                        <span class="logo-icon">🦉</span>
+                        <h1>REDS PLMT</h1>
+                    </div>
+                    <p class="login-subtitle">Your gamified habit tracker</p>
+                </div>
+                
+                <div class="login-content">
+                    <div class="mascot-preview">
+                        <div class="mascot-grid">
+                            <span class="mascot-mini">🦉</span>
+                            <span class="mascot-mini">🐻</span>
+                            <span class="mascot-mini">🦊</span>
+                            <span class="mascot-mini">🐱</span>
+                            <span class="mascot-mini">🐰</span>
+                            <span class="mascot-mini">🐼</span>
+                            <span class="mascot-mini">🐯</span>
+                            <span class="mascot-mini">🐕</span>
+                        </div>
+                        <p>Meet your habit mascots!</p>
+                    </div>
+                    
+                    <div class="auth-section">
+                        <div id="google-signin-button" class="google-signin-btn">
+                            <svg class="google-icon" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                            Sign in with Google
+                        </div>
+                        
+                        <div class="demo-mode">
+                            <button id="demo-mode-btn" class="btn btn--outline">Try Demo Mode</button>
+                            <p class="demo-note">Continue without an account (data won't be saved)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Application -->
+        <div id="main-app" class="main-app hidden">
+            <!-- Navigation -->
+            <nav class="nav-bar">
+                <div class="nav-brand">
+                    <span class="mascot-icon">🦉</span>
+                    <h1>REDS PLMT</h1>
+                </div>
+                <div class="nav-center">
+                    <div class="nav-tabs">
+                        <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
+                        <button class="nav-tab" data-tab="progress">Progress</button>
+                        <button class="nav-tab" data-tab="reflection">Reflection</button>
+                        <button class="nav-tab" data-tab="settings">Settings</button>
+                    </div>
+                </div>
+                <div class="nav-user">
+                    <div class="user-info">
+                        <img id="user-avatar" class="user-avatar" src="" alt="User Avatar">
+                        <span id="user-name" class="user-name">User</span>
+                    </div>
+                    <button id="signout-btn" class="btn btn--sm btn--outline">Sign Out</button>
+                </div>
+            </nav>
+
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view active">
+                <div class="dashboard-header">
+                    <div class="user-stats">
+                        <div class="stat-card">
+                            <span class="stat-label">Level</span>
+                            <span id="current-level" class="stat-value">1</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Total XP</span>
+                            <span id="total-xp" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Streak</span>
+                            <span id="combo-streak" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <div class="level-progress">
+                        <div class="level-info">
+                            <span>Level <span id="level-display">1</span></span>
+                            <span><span id="current-xp">0</span> / <span id="next-level-xp">100</span> XP</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="xp-progress" class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mascots-section">
+                    <h2>Your Habit Mascots</h2>
+                    <p class="mascots-subtitle">Each habit has its own mascot that reacts to your progress!</p>
+                    <div id="mascots-grid" class="mascots-grid">
+                        <!-- Mascots will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="today-summary">
+                    <div class="summary-card">
+                        <h3>Today's Progress</h3>
+                        <div class="progress-ring">
+                            <svg class="progress-svg" viewBox="0 0 36 36">
+                                <circle cx="18" cy="18" r="16" fill="none" stroke="var(--color-secondary)" stroke-width="2"></circle>
+                                <circle id="progress-circle" cx="18" cy="18" r="16" fill="none" stroke="var(--app-primary)" stroke-width="2" 
+                                        stroke-dasharray="100 0" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+                            </svg>
+                            <div class="progress-text">
+                                <span id="completed-today">0</span>/<span id="total-habits">8</span>
+                            </div>
+                        </div>
+                        <p id="progress-message" class="progress-message">Great start to the day!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress View -->
+            <div id="progress-view" class="view">
+                <div class="progress-header">
+                    <h2>Your Progress Journey</h2>
+                </div>
+                
+                <div class="progress-overview">
+                    <div class="overview-stats">
+                        <div class="overview-card">
+                            <div class="overview-icon">📈</div>
+                            <div class="overview-content">
+                                <h3 id="total-xp-display">0</h3>
+                                <p>Total Experience</p>
+                            </div>
+                        </div>
+                        <div class="overview-card">
+                            <div class="overview-icon">🏆</div>
+                            <div class="overview-content">
+                                <h3 id="progress-level-display">1</h3>
+                                <p>Current Level</p>
+                            </div>
+                        </div>
+                        <div class="overview-card">
+                            <div class="overview-icon">🗓️</div>
+                            <div class="overview-content">
+                                <h3 id="weekly-progress">0/7</h3>
+                                <p>This Week</p>
+                            </div>
+                        </div>
+                        <div class="overview-card">
+                            <div class="overview-icon">👹</div>
+                            <div class="overview-content">
+                                <h3 id="bosses-defeated">0</h3>
+                                <p>Bosses Defeated</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="boss-battle-section">
+                    <h3>Weekly Boss Battle</h3>
+                    <div class="boss-battle-card">
+                        <div class="boss-info">
+                            <span class="boss-icon">👹</span>
+                            <div class="boss-details">
+                                <p id="boss-status">Complete 5/7 days to defeat this week!</p>
+                                <div class="boss-progress">
+                                    <div id="boss-progress-fill" class="boss-progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="habit-streaks">
+                    <h3>Individual Habit Streaks</h3>
+                    <div id="streaks-container" class="streaks-grid">
+                        <!-- Streaks will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="achievements-section">
+                    <h3>Achievements & Badges</h3>
+                    <div id="badges-container" class="badges-grid">
+                        <!-- Badges will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reflection View -->
+            <div id="reflection-view" class="view">
+                <div class="reflection-header">
+                    <h2>Weekly Reflection</h2>
+                    <p class="reflection-subtitle">Take a moment to reflect on your journey</p>
+                </div>
+
+                <div class="reflection-content">
+                    <div class="reflection-questions">
+                        <h3>Reflection Questions</h3>
+                        <div id="reflection-form" class="questions-container">
+                            <!-- Questions will be populated by JavaScript -->
+                        </div>
+                        <button id="save-reflection" class="btn btn--primary">Save Reflection</button>
+                    </div>
+
+                    <div class="reflection-insights">
+                        <h3>This Week's Insights</h3>
+                        <div class="insights-grid">
+                            <div class="insight-card">
+                                <h4>Most Consistent</h4>
+                                <div id="most-consistent-habit" class="insight-value">-</div>
+                            </div>
+                            <div class="insight-card">
+                                <h4>Needs Attention</h4>
+                                <div id="needs-attention-habit" class="insight-value">-</div>
+                            </div>
+                            <div class="insight-card">
+                                <h4>Best Day</h4>
+                                <div id="best-day" class="insight-value">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings View -->
+            <div id="settings-view" class="view">
+                <div class="settings-header">
+                    <h2>Settings & Customization</h2>
+                </div>
+
+                <div class="settings-sections">
+                    <div class="settings-section">
+                        <h3>🎭 Mascot Customization</h3>
+                        <p>Customize your habit mascots and their names</p>
+                        <div id="mascot-customization" class="mascot-customization">
+                            <!-- Mascot customization will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>💾 Data Management</h3>
+                        <div class="data-actions">
+                            <div class="action-group">
+                                <h4>Export Data</h4>
+                                <p>Download your habit data</p>
+                                <div class="action-buttons">
+                                    <button id="export-json" class="btn btn--outline">Export JSON</button>
+                                    <button id="export-csv" class="btn btn--outline">Export CSV</button>
+                                </div>
+                            </div>
+                            <div class="action-group">
+                                <h4>Import Data</h4>
+                                <p>Import previously exported data</p>
+                                <input type="file" id="import-file" accept=".json,.csv" class="hidden">
+                                <button id="import-data" class="btn btn--outline">Import Data</button>
+                            </div>
+                            <div class="action-group">
+                                <h4>Backup & Sync</h4>
+                                <p id="sync-status">Last synced: Never</p>
+                                <button id="force-sync" class="btn btn--outline">Sync Now</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>⚙️ Preferences</h3>
+                        <div class="preferences">
+                            <div class="preference-item">
+                                <label class="form-label">
+                                    <input type="checkbox" id="notifications-enabled"> 
+                                    Enable motivational notifications
+                                </label>
+                            </div>
+                            <div class="preference-item">
+                                <label class="form-label">
+                                    <input type="checkbox" id="sound-effects"> 
+                                    Play sound effects
+                                </label>
+                            </div>
+                            <div class="preference-item">
+                                <label class="form-label">Theme</label>
+                                <select id="theme-selector" class="form-control">
+                                    <option value="auto">Auto (System)</option>
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>ℹ️ About</h3>
+                        <div class="about-content">
+                            <p><strong>REDS PLMT Tracker v2.0</strong></p>
+                            <p>Enhanced gamified habit tracker with cloud sync and personalized mascots.</p>
+                            <p>Track your habits: Read, Exercise, Deep Work, Sleep, Plan, Learn, Mindfulness, Track finances</p>
+                            <div class="danger-zone">
+                                <h4>Danger Zone</h4>
+                                <button id="reset-data" class="btn btn--error">Reset All Data</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <div id="level-up-modal" class="modal">
+            <div class="modal-content celebration">
+                <div class="celebration-icon">🎉</div>
+                <h3>Level Up!</h3>
+                <p>Congratulations! You've reached level <span id="new-level"></span>!</p>
+                <button class="btn btn--primary" onclick="closeLevelUpModal()">Awesome!</button>
+            </div>
+        </div>
+
+        <div id="habit-complete-modal" class="modal">
+            <div class="modal-content">
+                <div class="mascot-celebration">
+                    <span id="celebrating-mascot"></span>
+                </div>
+                <h3 id="habit-complete-title">Great Job!</h3>
+                <p id="habit-complete-message">You've completed a habit!</p>
+                <button class="btn btn--primary" onclick="closeHabitCompleteModal()">Keep Going!</button>
+            </div>
+        </div>
+
+        <div id="mascot-selector-modal" class="modal">
+            <div class="modal-content wide">
+                <h3 id="mascot-selector-title">Choose Your Mascot</h3>
+                <div id="mascot-options" class="mascot-options">
+                    <!-- Mascot options will be populated -->
+                </div>
+                <div class="mascot-customization-form">
+                    <div class="form-group">
+                        <label class="form-label">Mascot Name</label>
+                        <input type="text" id="mascot-name-input" class="form-control" placeholder="Give your mascot a name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Color Theme</label>
+                        <div id="color-options" class="color-options">
+                            <!-- Color options will be populated -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn--outline" onclick="closeMascotSelector()">Cancel</button>
+                    <button class="btn btn--primary" onclick="saveMascotSelection()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
